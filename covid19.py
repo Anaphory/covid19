@@ -56,11 +56,11 @@ observed_recoveries = numpy.maximum(
 
 # Parameters
 def log_lk(newly_exposed, newly_infected, unobserved,
-           exposed_p, infected_p, tested_p, tested_contact_p, dead_p, immune_p, susceptible_p,
+           exposed_p, external_sources_p, infected_p, tested_p, tested_contact_p, dead_p, immune_p, susceptible_p,
            dead_alpha, dead_beta, test_alpha, test_beta, contact_alpha, contact_beta):
-    if (exposed_p<=0 or infected_p<=0 or (tested_p<=0).any() or (tested_contact_p<=0).any() or (dead_p<=0).any() or immune_p<=0 or susceptible_p<=0 or
+    if (exposed_p<=0 or external_sources_p<=0 or infected_p<=0 or (tested_p<=0).any() or (tested_contact_p<=0).any() or (dead_p<=0).any() or immune_p<=0 or susceptible_p<=0 or
         # exposed_p>=1 or
-        infected_p>=1 or (tested_p>=1).any() or (tested_contact_p>=1).any() or (dead_p>=1).any() or immune_p>=1 or susceptible_p>=1):
+        external_sources_p>=1 or infected_p>=1 or (tested_p>=1).any() or (tested_contact_p>=1).any() or (dead_p>=1).any() or immune_p>=1 or susceptible_p>=1):
         return -numpy.inf, numpy.inf
     cum_exposed = numpy.hstack(
         (numpy.zeros_like(populations),
@@ -78,7 +78,8 @@ def log_lk(newly_exposed, newly_infected, unobserved,
                     cum_susceptible[:, :-1],
                     exposed_p * (
                         cum_unknown_infected[:, :-1] +
-                        tested_contact_p[:, None] * cum_tested_positive[:, :-1])),
+                        tested_contact_p[:, None] * cum_tested_positive[:, :-1]) +
+                     external_sources_p),
         # Exposed people become infected
         binom.logpmf(newly_infected,
                      cum_exposed[:, :-1],
@@ -113,8 +114,9 @@ state = dict(
     newly_exposed = numpy.zeros_like(tested_positive),
     newly_infected = numpy.zeros_like(tested_positive),
     unobserved = numpy.zeros_like(tested_positive),
-    exposed_p = 0.0005,
+    exposed_p = 0.05,
     infected_p = 0.5,
+    external_sources_p = 1e-10,
     tested_p = numpy.ones(len(populations)) * 0.5,
     tested_contact_p = numpy.ones(len(populations)) * 0.5,
     dead_p = numpy.ones(len(populations)) * 0.5,
@@ -170,9 +172,11 @@ def propose(state):
         state["contact_alpha"] += rand(1, 3) * (-1) ** rand(2)
     elif i < 23:
         state["contact_beta"] += rand(1, 3) * (-1) ** rand(2)
+    elif i < 11:
+        state["external_sources_p"] = 1e-10 * (numpy.random.random() - 0.5) + state["external_sources_p"]
 
 print(*
-      ["s", "lk", "err", "exposed_p", "infected_p", "immune_p"] +
+      ["s", "lk", "err", "exposed_p", "external_sources_p", "infected_p", "immune_p"] +
       ["tested_p {:}".format(c) for c in countries] +
       ["tested_contact_p {:}".format(c) for c in countries] +
       ["dead_p {:}".format(c) for c in countries],
@@ -180,7 +184,7 @@ print(*
 lk, err = log_lk(**state)
 for s in range(2000000):
     if s % 10000 == 0:
-        print(*[s, lk, err, state["exposed_p"], state["infected_p"], state["immune_p"]] +
+        print(*[s, lk, err, state["exposed_p"], state["external_sources_p"], state["infected_p"], state["immune_p"]] +
               list(state["tested_p"]) +
               list(state["tested_contact_p"]) +
               list(state["dead_p"]),
