@@ -130,7 +130,7 @@ state = dict(
     susceptible_p = 0.5)
 
 def propose(state):
-    i = rand(23)
+    i = rand(24)
     if i < 3:
         index = tuple(rand(state["newly_exposed"].shape))
         state["newly_exposed"][index] += rand(1, 3) * (-1) ** rand(2)
@@ -172,7 +172,7 @@ def propose(state):
         state["contact_alpha"] += rand(1, 3) * (-1) ** rand(2)
     elif i < 23:
         state["contact_beta"] += rand(1, 3) * (-1) ** rand(2)
-    elif i < 11:
+    elif i < 24:
         state["external_sources_p"] = 1e-10 * (numpy.random.random() - 0.5) + state["external_sources_p"]
 
 print(*
