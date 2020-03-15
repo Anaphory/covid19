@@ -83,19 +83,19 @@ def log_lk(newly_exposed, newly_infected, unobserved,
                      exposed_p * (
                          cum_unknown_infected[:, :-1] +
                          tested_contact_p[:, None] * cum_confirmed[:, :-1]) + (
-                     external_sources_p * (cum_confirmed[:, :-1].sum(0) + 1))),
+                     external_sources_p)),
         # Exposed people become infected
         binom.logpmf(newly_infected,
                      cum_exposed[:, :-1],
                      infected_p),
+        # People might recover or die before they are tested
+        binom.logpmf(unobserved,
+                     cum_unknown_infected[:, :-1],
+                     dead_p[:, None] + immune_p),
         # Infected people become tested
         binom.logpmf(confirmed,
-                     cum_unknown_infected[:, :-1],
+                     cum_unknown_infected[:, :-1] - unobserved,
                      tested_p[:, None]),
-        # Or they disappear otherwise, becoming immune or dead before they are tested
-        binom.logpmf(unobserved,
-                     cum_unknown_infected[:, :-1] - confirmed,
-                     dead_p[:, None] + immune_p),
         # Tested people recover
         binom.logpmf(recovered,
                      cum_confirmed[:, :-1],
